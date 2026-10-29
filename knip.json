@@ -1,0 +1,11 @@
+{
+  "workspaces": {
+    ".": {
+      "entry": ["tests/**/*.test.ts", "tests/conformance/cases/*.ts", "tests/resolve-aliases.cjs"],
+      "project": ["tests/**/*.{ts,cjs}", "*.{js,ts}"]
+    },
+    "packages/sdk": {
+      "project": ["src/**/*.ts"]
+    }
+  }
+}

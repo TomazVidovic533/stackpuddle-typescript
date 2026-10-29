@@ -1,0 +1,10 @@
+{
+  "path": "../stackpuddle",
+  "commit": "014df27a6e94e529091286cb2af528bf9928ef24",
+  "uncommitted": true,
+  "tree": {
+    "algorithm": "sha256",
+    "paths": ["schemas/v1", "tests/conformance/cases/parity", "tests/conformance/cases/invalid"],
+    "digest": "38dc4e620d74402bca0d8708b0ba4768910888b71a8c60d8f9579dbc5eea8ee3"
+  }
+}

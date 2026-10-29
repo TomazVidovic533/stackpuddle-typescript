@@ -1,0 +1,50 @@
+{
+  "name": "stackpuddle-typescript",
+  "private": true,
+  "type": "module",
+  "description": "Workspace of the StackPuddle TypeScript authoring SDK.",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.12.0 <23"
+  },
+  "scripts": {
+    "typecheck:sdk": "tsc --noEmit -p packages/sdk",
+    "typecheck:tests": "tsc --noEmit -p tests",
+    "lint": "eslint packages tests",
+    "format": "prettier --check . --ignore-path .gitignore --ignore-path packages/sdk/.prettierignore",
+    "format:write": "prettier --write . --ignore-path .gitignore --ignore-path packages/sdk/.prettierignore",
+    "depcruise": "depcruise --config .dependency-cruiser.cjs packages/sdk/src tests",
+    "knip": "knip",
+    "test:unit": "vitest run --project unit --project types",
+    "test:composition": "vitest run --project composition",
+    "test:conformance": "vitest run --project conformance",
+    "test:package": "vitest run --project package",
+    "build": "tsc -p packages/sdk",
+    "pack:sdk": "pnpm --filter @stackpuddle/sdk pack --pack-destination \"$PWD/dist\"",
+    "publint": "publint run dist/stackpuddle-sdk-0.0.0.tgz",
+    "attw": "attw --profile esm-only dist/stackpuddle-sdk-0.0.0.tgz"
+  },
+  "prettier": {
+    "printWidth": 100,
+    "singleQuote": false,
+    "trailingComma": "all",
+    "endOfLine": "lf"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "0.18.5",
+    "@eslint-community/eslint-plugin-eslint-comments": "4.8.1",
+    "@eslint/js": "10.0.1",
+    "@types/node": "22.20.5",
+    "dependency-cruiser": "18.7.0",
+    "eslint": "10.13.0",
+    "eslint-plugin-import-x": "4.17.1",
+    "knip": "6.43.0",
+    "prettier": "3.9.10",
+    "publint": "0.3.25",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.1",
+    "vite": "8.3.5",
+    "vitest": "5.0.5"
+  }
+}

@@ -1,0 +1,103 @@
+version: "3"
+
+# Every check runs without Docker. The package manager and Node come from the host PATH
+# (pnpm 10.28.0, Node 22); the workspace scripts in package.json are what CI calls too.
+
+vars:
+  SIBLING: ../stackpuddle
+  SCHEMAS_FROM: ../stackpuddle/schemas/v1
+  SCHEMAS_TO: packages/sdk/src/schema/generated/v1
+
+tasks:
+  default:
+    desc: List the tasks.
+    cmds:
+      - task --list
+
+  install:
+    desc: Install the locked dependency set; fails if the lockfile and manifests disagree.
+    cmds:
+      - pnpm install --frozen-lockfile
+
+  check:
+    desc: The full check without Docker.
+    cmds:
+      - task: install
+      - task: check:pins
+      - task: typecheck
+      - task: lint
+      - task: format
+      - task: depcruise
+      - task: knip
+      - task: check:generated
+      - task: test
+      - task: build
+      - task: test:package
+
+  check:pins:
+    desc: Fail on any version range, tag or protocol in a dependency field of any package.json.
+    cmds:
+      - pnpm exec vitest run --project unit tests/unit/pins.test.ts
+
+  typecheck:
+    desc: tsc --noEmit once per package, and once for the tests.
+    cmds:
+      - pnpm run typecheck:sdk
+      - pnpm run typecheck:tests
+
+  lint:
+    desc: ESLint, type-aware.
+    cmds:
+      - pnpm run lint
+
+  format:
+    desc: Prettier check.
+    cmds:
+      - pnpm run format
+
+  depcruise:
+    desc: Dependency direction and import cycles.
+    cmds:
+      - pnpm run depcruise
+
+  knip:
+    desc: Unused files, exports and dependencies.
+    cmds:
+      - pnpm run knip
+
+  generate:schemas:
+    desc: Copy stackpuddle's published schemas into the SDK (the generated copy is never edited).
+    cmds:
+      - cmd: |
+          test -d {{.SCHEMAS_FROM}} || { echo "stackpuddle checkout not found at {{.SIBLING}}"; exit 1; }
+          cp {{.SCHEMAS_FROM}}/*.json {{.SCHEMAS_TO}}/
+
+  check:generated:
+    desc: Fail, naming each stale file, when the generated schema copy differs from stackpuddle's.
+    cmds:
+      - cmd: |
+          test -d {{.SCHEMAS_FROM}} || { echo "stackpuddle checkout not found at {{.SIBLING}}"; exit 1; }
+          diff -rq {{.SCHEMAS_FROM}} {{.SCHEMAS_TO}} || { echo "stale generated schemas; run: task generate:schemas"; exit 1; }
+
+  test:
+    desc: Unit, types, composition and conformance tests.
+    cmds:
+      - pnpm run test:unit
+      - pnpm run test:composition
+      - pnpm run test:conformance
+
+  build:
+    desc: Compile the package to packages/sdk/dist.
+    cmds:
+      - pnpm run build
+
+  test:package:
+    desc: Pack the SDK, lint the tarball, then import it in a scratch project.
+    cmds:
+      - task: build
+      - rm -f dist/*.tgz
+      - mkdir -p dist
+      - pnpm run pack:sdk
+      - pnpm run publint
+      - pnpm run attw
+      - pnpm run test:package

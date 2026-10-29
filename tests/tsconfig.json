@@ -1,0 +1,13 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "..",
+    "paths": {
+      "@stackpuddle/sdk": ["../packages/sdk/src/index.ts"],
+      "@stackpuddle/sdk/postgres": ["../packages/sdk/src/postgres/index.ts"],
+      "@stackpuddle/sdk/compose": ["../packages/sdk/src/compose/index.ts"]
+    }
+  },
+  "include": ["**/*.ts"]
+}

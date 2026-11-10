@@ -20,6 +20,10 @@ export type ProjectParts = {
   readonly imports?: readonly ImportedFragment[];
   readonly patches?: readonly Patch[];
   readonly description?: string;
+  /** Path of the project's Manifest, which selects the packaged modules the CLI may supply. */
+  readonly manifest?: string;
+  /** Path of the Lock that pins the Manifest's bundle and module archives by digest. */
+  readonly lock?: string;
 };
 
 /** The composition root: everything one model file is made of. Immutable. */
@@ -27,6 +31,8 @@ export type Project = {
   readonly kind: "project";
   readonly name: string;
   readonly description?: string;
+  readonly manifest?: string;
+  readonly lock?: string;
   readonly declarations: readonly Declaration[];
   readonly bindings: readonly BindingDeclaration[];
   /** Problems found while composing; reported when the model encodes. */
@@ -60,6 +66,14 @@ function applyPatches(
   return { declarations: next, problems };
 }
 
+/** Copies the manifest and lock paths only when named, so an unnamed one stays absent. */
+function namedPaths(parts: ProjectParts): { manifest?: string; lock?: string } {
+  return {
+    ...(parts.manifest === undefined ? {} : { manifest: parts.manifest }),
+    ...(parts.lock === undefined ? {} : { lock: parts.lock }),
+  };
+}
+
 /**
  * Composes a project explicitly: the declarations written in code, the Fragments imported from
  * YAML, and typed patches over imported objects. Nothing is discovered implicitly. Problems do not
@@ -80,6 +94,7 @@ export function defineProject(name: string, parts: ProjectParts = {}): Project {
     kind: "project",
     name,
     ...(parts.description === undefined ? {} : { description: parts.description }),
+    ...namedPaths(parts),
     declarations: patched.declarations,
     bindings,
     problems: [

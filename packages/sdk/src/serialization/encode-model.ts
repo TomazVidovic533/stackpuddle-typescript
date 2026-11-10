@@ -234,14 +234,18 @@ function modelTree(project: Project): JsonObject {
       name: project.name,
       ...(project.description === undefined ? {} : { description: project.description }),
     },
-    spec: omitEmpty({
-      definitions: section(declarations, "definition", (item) => item.spec),
-      inputs: section(declarations, "input", (item) => item.spec),
-      objects: envelopes(declarations),
-      applications: section(declarations, "application", application),
-      bindings: bindings.map(bindingJson),
-      environments: section(declarations, "environment", environment),
-    }),
+    spec: {
+      ...(project.manifest === undefined ? {} : { manifest: project.manifest }),
+      ...(project.lock === undefined ? {} : { lock: project.lock }),
+      ...omitEmpty({
+        definitions: section(declarations, "definition", (item) => item.spec),
+        inputs: section(declarations, "input", (item) => item.spec),
+        objects: envelopes(declarations),
+        applications: section(declarations, "application", application),
+        bindings: bindings.map(bindingJson),
+        environments: section(declarations, "environment", environment),
+      }),
+    },
     provenance: provenance(declarations, bindings),
   };
 }

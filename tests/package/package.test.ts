@@ -42,8 +42,21 @@ if (!result.ok) {
 process.stdout.write(result.value);
 `;
 
+const MANIFEST_SCRIPT = `
+import { defineProject, encodeModel } from "@stackpuddle/sdk";
+
+const result = encodeModel(
+  defineProject("shop", { manifest: "stackpuddle.manifest.yaml", lock: "stackpuddle.lock" }),
+);
+if (!result.ok) {
+  throw new Error(JSON.stringify(result.error));
+}
+process.stdout.write(result.value);
+`;
+
 let tarball = "";
 let scratch = "";
+const extraScratch: string[] = [];
 
 function tarballs(): string[] {
   return existsSync(distRoot) ? readdirSync(distRoot).filter((name) => name.endsWith(".tgz")) : [];
@@ -61,10 +74,25 @@ beforeAll(() => {
 });
 
 afterAll(() => {
-  if (scratch !== "") {
-    rmSync(scratch, { recursive: true, force: true });
+  for (const dir of [scratch, ...extraScratch]) {
+    if (dir !== "") {
+      rmSync(dir, { recursive: true, force: true });
+    }
   }
 });
+
+function installTarball(dir: string): void {
+  writeFileSync(
+    join(dir, "package.json"),
+    JSON.stringify({ name: "scratch", private: true, type: "module" }),
+  );
+  writeFileSync(join(dir, ".npmrc"), "save-exact=true\n");
+  execFileSync(
+    "pnpm",
+    ["add", tarball, "--ignore-workspace", "--prefer-offline", "--ignore-scripts"],
+    { cwd: dir, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+  );
+}
 
 describe("the packed SDK", () => {
   it("holds the built files, the schemas it validates with and the licence, and no sources or tests", () => {
@@ -94,20 +122,7 @@ describe("the packed SDK", () => {
   it(
     "imports from a scratch project through its three entry points and emits stackpuddle's expected intent",
     () => {
-      writeFileSync(
-        join(scratch, "package.json"),
-        JSON.stringify({ name: "scratch", private: true, type: "module" }),
-      );
-      writeFileSync(join(scratch, ".npmrc"), "save-exact=true\n");
-      execFileSync(
-        "pnpm",
-        ["add", tarball, "--ignore-workspace", "--prefer-offline", "--ignore-scripts"],
-        {
-          cwd: scratch,
-          encoding: "utf8",
-          stdio: ["ignore", "pipe", "pipe"],
-        },
-      );
+      installTarball(scratch);
       writeFileSync(join(scratch, "smoke.mjs"), SCRATCH_SCRIPT);
       const emitted = execFileSync("node", ["smoke.mjs"], { cwd: scratch, encoding: "utf8" });
 
@@ -124,6 +139,24 @@ describe("the packed SDK", () => {
       delete expected["provenance"];
       delete actual["provenance"];
       expect(actual).toEqual(expected);
+    },
+    TIMEOUT,
+  );
+
+  it(
+    "the packed SDK emits the manifest and lock a project names",
+    () => {
+      const dir = mkdtempSync(join(tmpdir(), "sp-package-manifest-"));
+      extraScratch.push(dir);
+      installTarball(dir);
+      writeFileSync(join(dir, "manifest.mjs"), MANIFEST_SCRIPT);
+      const emitted = JSON.parse(
+        execFileSync("node", ["manifest.mjs"], { cwd: dir, encoding: "utf8" }),
+      ) as { spec: Record<string, unknown> };
+      expect(emitted.spec).toEqual({
+        manifest: "stackpuddle.manifest.yaml",
+        lock: "stackpuddle.lock",
+      });
     },
     TIMEOUT,
   );
